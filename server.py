@@ -21,7 +21,7 @@ if not os.path.exists(CLIPS_DIR):
 # Directorios permitidos para servir archivos estáticos
 ALLOWED_STATIC_DIRS = ['out', 'public', 'assets', 'src']
 
-VIDEO_URL = "https://portfoliotavm.com/n8n/meme/video.mp4"
+VIDEO_URL = "https://portfoliotavm.com/n8n/milei/video.mp4"
 VIDEO_PATH = "./video.mp4"
 
 def is_safe_path(basedir, path, follow_symlinks=True):
@@ -357,6 +357,7 @@ def generate_clip():
             
             # Limpiar directorio temporal de la sesión
             shutil.rmtree(session_dir)
+            os.remove(os.path.join(public_dir, "sample-video.json"))
             
             response = {
                 "success": True,

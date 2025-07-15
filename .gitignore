@@ -8,3 +8,4 @@ out
 /whisper.cpp
 video.mp4
 *.mp4
+/public/sample-video.json

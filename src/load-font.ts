@@ -9,7 +9,7 @@ export const loadFont = async (): Promise<void> => {
     return Promise.resolve();
   }
 
-  const waitForFont = delayRender();
+  const waitForFont = delayRender("wait font",{timeoutInMilliseconds: 50000, retries: 3});
 
   loaded = true;
 
