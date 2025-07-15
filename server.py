@@ -8,7 +8,6 @@ from flask_cors import CORS
 import tempfile
 import shutil
 import requests  # Add this import for downloading the video
-from tqdm import tqdm  # Add this import for the progress bar
 
 app = Flask(__name__)
 CORS(app)
@@ -76,24 +75,52 @@ def generate_random_clip(video_path, output_path, start_time, duration):
         return False
 
 def download_video(url, output_path):
-    """Descarga un video desde una URL y lo guarda en el path especificado con barra de progreso"""
+    """Descarga un video desde una URL y lo guarda en el path especificado"""
     try:
-        response = requests.get(url, stream=True)
-        response.raise_for_status()
-        total_size = int(response.headers.get('content-length', 0))
-        block_size = 1024  # Tamaño del bloque para la barra de progreso
-        progress_bar = tqdm(total=total_size, unit='B', unit_scale=True, desc="Descargando video")
-
-        with open(output_path, 'wb') as f:
-            for data in response.iter_content(block_size):
-                f.write(data)
-                progress_bar.update(len(data))
+        print(f"Iniciando descarga del video desde {url}...")
         
-        progress_bar.close()
-        print(f"Video descargado exitosamente en {output_path} (Tamaño: {total_size / (1024 * 1024):.2f} MB)")
+        # Set timeout for the request
+        response = requests.get(url, stream=True, timeout=30)
+        response.raise_for_status()
+        
+        total_size = int(response.headers.get('content-length', 0))
+        downloaded_size = 0
+        block_size = 8192  # 8KB blocks
+        
+        print(f"Tamaño del archivo: {total_size / (1024 * 1024):.2f} MB")
+        
+        with open(output_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=block_size):
+                if chunk:  # Filter out keep-alive chunks
+                    f.write(chunk)
+                    downloaded_size += len(chunk)
+                    
+                    # Print progress every 10MB
+                    if downloaded_size % (10 * 1024 * 1024) == 0:
+                        progress = (downloaded_size / total_size) * 100 if total_size > 0 else 0
+                        print(f"Progreso: {progress:.1f}% ({downloaded_size / (1024 * 1024):.1f} MB)")
+        
+        print(f"✅ Video descargado exitosamente en {output_path}")
+        print(f"📊 Tamaño final: {downloaded_size / (1024 * 1024):.2f} MB")
         return True
+        
+    except requests.exceptions.Timeout:
+        print("❌ Error: Timeout al descargar el video")
+        # Clean up partial download
+        if os.path.exists(output_path):
+            os.remove(output_path)
+        return False
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Error de conexión al descargar el video: {e}")
+        # Clean up partial download
+        if os.path.exists(output_path):
+            os.remove(output_path)
+        return False
     except Exception as e:
-        print(f"Error descargando el video: {e}")
+        print(f"❌ Error inesperado descargando el video: {e}")
+        # Clean up partial download
+        if os.path.exists(output_path):
+            os.remove(output_path)
         return False
 
 @app.route('/files/<directory>', methods=['GET'])
@@ -285,34 +312,43 @@ def index():
 def generate_clip():
     """Genera un clip aleatorio del video especificado"""
     try:
+        print("🎬 Iniciando generación de clip...")
+        
         # Descargar el video si no existe localmente
         if not os.path.exists(VIDEO_PATH):
-            print(f"Descargando video desde {VIDEO_URL}...")
-            if not download_video(VIDEO_URL, VIDEO_PATH):
+            print(f"📥 Video no encontrado localmente. Descargando desde {VIDEO_URL}...")
+            download_success = download_video(VIDEO_URL, VIDEO_PATH)
+            if not download_success:
                 return jsonify({"error": "No se pudo descargar el video"}), 500
+            print("✅ Descarga completada, continuando con el proceso...")
+        else:
+            print("✅ Video ya existe localmente, continuando...")
 
-        # Verificar que el archivo existe
+        # Verificar que el archivo existe después de la descarga
         if not os.path.exists(VIDEO_PATH):
-            return jsonify({"error": f"El archivo {VIDEO_PATH} no existe"}), 404
+            return jsonify({"error": f"El archivo {VIDEO_PATH} no existe después de la descarga"}), 404
         
         # Verificar que es un archivo MP4
         if not VIDEO_PATH.lower().endswith('.mp4'):
             return jsonify({"error": "Solo se aceptan archivos MP4"}), 400
         
+        print("🔍 Obteniendo duración del video...")
         # Obtener duración del video
         video_duration = get_video_duration(VIDEO_PATH)
         if video_duration is None:
             return jsonify({"error": "No se pudo obtener la duración del video"}), 500
         
+        print(f"⏱️ Duración del video: {video_duration:.2f} segundos")
+        
         # Verificar que el video es lo suficientemente largo
         if video_duration < 60:
             return jsonify({"error": "El video debe tener al menos 60 segundos"}), 400
         
+        print("🎯 Generando clip...")
         # Crear directorio público si no existe
         public_dir = "./public"
         if not os.path.exists(public_dir):
             os.makedirs(public_dir)
-        
         # Limpiar archivos previos si existen
         video_file = os.path.join(public_dir, "sample-video.mp4")
         json_file = os.path.join(public_dir, "sample-video.json")
@@ -401,6 +437,7 @@ def generate_clip():
     except subprocess.CalledProcessError as e:
         return jsonify({"error": f"Error en el proceso de transcripción o renderizado: {str(e)}"}), 500
     except Exception as e:
+        print(f"❌ Error interno del servidor: {str(e)}")
         return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
 
 @app.route('/list-clips', methods=['GET'])
