@@ -312,7 +312,16 @@ def generate_clip():
         public_dir = "./public"
         if not os.path.exists(public_dir):
             os.makedirs(public_dir)
-        os.remove(os.path.join(public_dir, "sample-video.json"))
+        
+        # Limpiar archivos previos si existen
+        video_file = os.path.join(public_dir, "sample-video.mp4")
+        json_file = os.path.join(public_dir, "sample-video.json")
+        
+        if os.path.exists(video_file):
+            os.remove(video_file)
+        if os.path.exists(json_file):
+            os.remove(json_file)
+        
         # Crear directorio único para esta sesión (temporal)
         session_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
         session_dir = os.path.join(CLIPS_DIR, session_id)
@@ -339,10 +348,17 @@ def generate_clip():
             # Mover el archivo generado a ./public/sample-video.mp4
             final_path = os.path.join(public_dir, "sample-video.mp4")
             shutil.move(temp_path, final_path)
-            
-            subprocess.run(["node", "./sub.mjs"])
+
+            # Ejecutar transcripción (esto debería crear el archivo JSON)
+            print("Ejecutando transcripción...")
+            subprocess.run(["node", "./sub.mjs", "./public/sample-video.mp4"], check=True)
+
+            # Verificar que el archivo JSON fue creado
+            if not os.path.exists(json_file):
+                return jsonify({"error": "El archivo de transcripción no fue generado"}), 500
 
             # Ejecutar remotion render
+            print("Ejecutando remotion render...")
             subprocess.run(["npx", "remotion", "render"], check=True)
             
             clip_info = {
@@ -357,7 +373,17 @@ def generate_clip():
             
             # Limpiar directorio temporal de la sesión
             shutil.rmtree(session_dir)
-            os.remove(os.path.join(public_dir, "sample-video.json"))
+            
+            # Limpiar archivos de trabajo DESPUÉS de todo el proceso
+            try:
+                if os.path.exists(video_file):
+                    os.remove(video_file)
+                    print("Archivo sample-video.mp4 eliminado")
+                if os.path.exists(json_file):
+                    os.remove(json_file)
+                    print("Archivo sample-video.json eliminado")
+            except Exception as cleanup_error:
+                print(f"Advertencia: Error al limpiar archivos: {cleanup_error}")
             
             response = {
                 "success": True,
@@ -365,13 +391,15 @@ def generate_clip():
                 "video_path": VIDEO_PATH,
                 "video_duration": round(video_duration, 2),
                 "clip": clip_info,
-                "message": "Clip generado en formato 9:16 y guardado en ./public/sample-video.mp4"
+                "message": "Clip generado en formato 9:16 y procesado exitosamente"
             }
         else:
             return jsonify({"error": "No se pudo generar el clip"}), 500
         
         return jsonify(response)
     
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": f"Error en el proceso de transcripción o renderizado: {str(e)}"}), 500
     except Exception as e:
         return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
 
