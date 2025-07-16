@@ -302,7 +302,7 @@ def index():
             "/clear-clips": "DELETE - Eliminar todos los clips",
             "/files/<directory>": "GET - Listar archivos en directorio",
             "/static/<directory>/<filename>": "GET - Servir archivo estático",
-            "/out/<filename>": "GET - Servir archivo desde ./out",
+            "/out/<filename>"
             "/public/<filename>": "GET - Servir archivo desde ./public",
             "/directories": "GET - Listar directorios disponibles"
         }
