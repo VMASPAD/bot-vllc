@@ -42,7 +42,7 @@ def delete_files_after_delay(file_base_name, delay_minutes=5):
                 print(f"Archivo eliminado: {json_file}")
 
             # Eliminar la carpeta ./out/ si existe
-            if os.path.exists(out_dir) and os.path.isdir(out_dir):
+            """if os.path.exists(out_dir) and os.path.isdir(out_dir):
                 try:
                     # Elimina todos los archivos dentro de la carpeta ./out/
                     for filename in os.listdir(out_dir):
@@ -56,7 +56,7 @@ def delete_files_after_delay(file_base_name, delay_minutes=5):
                     print(f"Carpeta eliminada: {out_dir}")
                     files_deleted.append("out/")
                 except Exception as e:
-                    print(f"Error eliminando carpeta {out_dir}: {e}")
+                    print(f"Error eliminando carpeta {out_dir}: {e}") """
             
             if files_deleted:
                 print(f"Limpieza automática completada después de {delay_minutes} minutos. Archivos eliminados: {', '.join(files_deleted)}")

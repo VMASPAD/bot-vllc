@@ -3,7 +3,7 @@ import yt_dlp
 def descargar_video(url, path_salida='.'):
     opciones = {
         'outtmpl': f'{path_salida}/%(title)s.%(ext)s',
-        'format': 'bestvideo+bestaudio/best',
+        'format': 'best[height<=720]/bestvideo[height<=720]+bestaudio/best',
         'merge_output_format': 'mp4'
     }
 
