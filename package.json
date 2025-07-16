@@ -33,6 +33,7 @@
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc",
+    "render": "remotion render",
     "create-subtitles": "node sub.mjs"
   },
   "sideEffects": [

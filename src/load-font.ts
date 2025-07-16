@@ -1,6 +1,6 @@
 import { continueRender, delayRender, staticFile } from "remotion";
 
-export const TheBoldFont = `TheBoldFont`;
+export const TheBoldFont = `CalSans`;
 
 let loaded = false;
 
@@ -9,13 +9,13 @@ export const loadFont = async (): Promise<void> => {
     return Promise.resolve();
   }
 
-  const waitForFont = delayRender("wait font",{timeoutInMilliseconds: 50000, retries: 3});
+  const waitForFont = delayRender("wait font", {timeoutInMilliseconds: 50000, retries: 5});
 
   loaded = true;
 
   const font = new FontFace(
     TheBoldFont,
-    `url('${staticFile("theboldfont.ttf")}') format('truetype')`,
+    `url('${staticFile("CalSans-Regular.ttf")}') format('truetype')`,
   );
 
   await font.load();

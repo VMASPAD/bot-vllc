@@ -5,11 +5,71 @@ import os
 import random
 from pathlib import Path
 import time
+import threading
+import shutil
+
 app = Flask(__name__)
 
 VIDEO_URL = "https://portfoliotavm.com/n8n/milei/video.mp4"
 ROUTE_CLIP = "./clip/"
 WHISPER_JSON = "./public/"
+
+def delete_files_after_delay(file_base_name, delay_minutes=5):
+    """
+    Elimina archivos con el nombre base especificado después de un tiempo determinado
+    """
+    def delete_files():
+        try:
+            time.sleep(delay_minutes * 60)  # Convertir minutos a segundos
+            
+            # Archivos a eliminar
+            mp4_file = os.path.join(WHISPER_JSON, f"{file_base_name}.mp4")
+            json_file = os.path.join(WHISPER_JSON, f"{file_base_name}.json")
+            out_dir = "./out/"
+            
+            files_deleted = []
+            
+            # Eliminar archivo MP4
+            if os.path.exists(mp4_file):
+                os.remove(mp4_file)
+                files_deleted.append(f"{file_base_name}.mp4")
+                print(f"Archivo eliminado: {mp4_file}")
+            
+            # Eliminar archivo JSON
+            if os.path.exists(json_file):
+                os.remove(json_file)
+                files_deleted.append(f"{file_base_name}.json")
+                print(f"Archivo eliminado: {json_file}")
+
+            # Eliminar la carpeta ./out/ si existe
+            if os.path.exists(out_dir) and os.path.isdir(out_dir):
+                try:
+                    # Elimina todos los archivos dentro de la carpeta ./out/
+                    for filename in os.listdir(out_dir):
+                        file_path = os.path.join(out_dir, filename)
+                        if os.path.isfile(file_path) or os.path.islink(file_path):
+                            os.remove(file_path)
+                        elif os.path.isdir(file_path):
+                            shutil.rmtree(file_path)
+                    # Elimina la carpeta ./out/
+                    os.rmdir(out_dir)
+                    print(f"Carpeta eliminada: {out_dir}")
+                    files_deleted.append("out/")
+                except Exception as e:
+                    print(f"Error eliminando carpeta {out_dir}: {e}")
+            
+            if files_deleted:
+                print(f"Limpieza automática completada después de {delay_minutes} minutos. Archivos eliminados: {', '.join(files_deleted)}")
+            else:
+                print(f"No se encontraron archivos para eliminar: {file_base_name}")
+                
+        except Exception as e:
+            print(f"Error durante la limpieza automática: {e}")
+    
+    # Ejecutar en un hilo separado para no bloquear la aplicación
+    cleanup_thread = threading.Thread(target=delete_files, daemon=True)
+    cleanup_thread.start()
+    print(f"Programada eliminación automática de archivos '{file_base_name}' en {delay_minutes} minutos")
 
 def download_video(url, destination_path):
     try:
@@ -114,29 +174,11 @@ def generate_random_clip(input_video, output_clip, min_duration=30, max_duration
             return False
             
     except Exception as e:
-        return jsonify({"error": f"Error listando directorios: {str(e)}"}), 500
-
-@app.route('/', methods=['GET'])
-def index():
-    """Endpoint de bienvenida"""
-    return jsonify({
-        "message": "Servidor de generación de clips de video",
-        "endpoints": {
-            "/generate-clip": "POST - Generar un clip aleatorio",
-            "/list-clips": "GET - Listar clips generados",
-            "/download-clip/<filename>": "GET - Descargar clip específico",
-            "/clear-clips": "DELETE - Eliminar todos los clips",
-            "/files/<directory>": "GET - Listar archivos en directorio",
-            "/static/<directory>/<filename>": "GET - Servir archivo estático",
-            "/out/<filename>": "GET - Servir archivo desde ./out",
-            "/public/<filename>": "GET - Servir archivo desde ./public",
-            "/directories": "GET - Listar directorios disponibles"
-        }
-    })
+        print(f"Error inesperado: {e}")
+        return False
 
 @app.route('/generate-clip', methods=['POST'])
 def generate_clip():
-    try:
         video_file = "./video.mp4"
         
         # Primero descargar el video si no existe
@@ -153,10 +195,11 @@ def generate_clip():
         
         # Generar clip aleatorio
         if generate_random_clip(video_file, clip_path):
+            print("generando subtitulos")
             # Mover el clip al directorio public con la ruta completa
             public_clip_path = os.path.join(WHISPER_JSON, clip_filename)
             os.rename(clip_path, public_clip_path)
-            
+            print(public_clip_path)
             # Generar transcripción (usando la ruta correcta)
             generate_transcription = subprocess.run([
                 'node', './sub.mjs', public_clip_path
@@ -167,11 +210,14 @@ def generate_clip():
 
             # Renderizar con Remotion
             remotionClip = subprocess.run([
-                'npx', 'remotion', "render"
+                'npm', 'run', "render"
             ], capture_output=True, text=True)
             print("Remotion:", remotionClip.stdout)
             if remotionClip.stderr:
                 print("Error Remotion:", remotionClip.stderr)
+            
+            # Programar eliminación automática de archivos después de 5 minutos
+            delete_files_after_delay("sample-video", 5)
                 
             return {
                 "status": "success",
@@ -185,11 +231,6 @@ def generate_clip():
                 "message": "Error al generar el clip"
             }
             
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": f"Error: {str(e)}"
-        }
     
 @app.route('/out/<path:filename>', methods=['GET'])
 def serve_captioned_video(filename):
