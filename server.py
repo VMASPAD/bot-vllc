@@ -254,4 +254,4 @@ def home():
 if __name__ == '__main__':
     Path("clip").mkdir(exist_ok=True)
     Path("public").mkdir(exist_ok=True)
-    app.run(host='0.0.0.0', port=7242)
+    app.run(host='0.0.0.0', port=7243)
