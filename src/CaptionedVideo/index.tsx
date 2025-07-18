@@ -58,7 +58,7 @@ export const CaptionedVideo: React.FC<{
   src: string;
 }> = ({ src }) => {
   const [subtitles, setSubtitles] = useState<Caption[]>([]);
-  const [handle] = useState(() => delayRender("wait video",{timeoutInMilliseconds: 50000, retries: 3}));
+  const [handle] = useState(() => delayRender("wait video",{timeoutInMilliseconds: 700000, retries: 3}));
   const { fps } = useVideoConfig();
 
   const subtitlesFile = src
