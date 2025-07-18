@@ -58,7 +58,7 @@ export const CaptionedVideo: React.FC<{
   src: string;
 }> = ({ src }) => {
   const [subtitles, setSubtitles] = useState<Caption[]>([]);
-  const [handle] = useState(() => delayRender("wait video",{timeoutInMilliseconds: 700000, retries: 3}));
+  const [handle, setHandle] = useState<string | null>(null);
   const { fps } = useVideoConfig();
 
   const subtitlesFile = src
@@ -68,6 +68,8 @@ export const CaptionedVideo: React.FC<{
     .replace(/.webm$/, ".json");
 
   const fetchSubtitles = useCallback(async () => {
+    if (!handle) return;
+    
     try {
       await loadFont();
       
@@ -90,21 +92,37 @@ export const CaptionedVideo: React.FC<{
     } catch (e) {
       console.error('Error loading subtitles:', e);
       setSubtitles([]);
-      continueRender(handle); // Continue render even on error
+      continueRender(handle);
     }
   }, [handle, subtitlesFile]);
 
   useEffect(() => {
-    fetchSubtitles();
-
-    const c = watchStaticFile(subtitlesFile, () => {
-      fetchSubtitles();
+    const renderHandle = delayRender("wait video", {
+      timeoutInMilliseconds: 700000,
+      retries: 3
     });
+    setHandle(renderHandle);
 
     return () => {
-      c.cancel();
+      if (renderHandle) {
+        continueRender(renderHandle);
+      }
     };
-  }, [fetchSubtitles, src, subtitlesFile]);
+  }, []);
+
+  useEffect(() => {
+    if (handle) {
+      fetchSubtitles();
+
+      const c = watchStaticFile(subtitlesFile, () => {
+        fetchSubtitles();
+      });
+
+      return () => {
+        c.cancel();
+      };
+    }
+  }, [fetchSubtitles, handle, subtitlesFile]);
 
   const { pages } = useMemo(() => {
     return createTikTokStyleCaptions({
