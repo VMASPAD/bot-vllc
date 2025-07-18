@@ -21,7 +21,7 @@ const container: React.CSSProperties = {
 };
 
 const DESIRED_FONT_SIZE = 120;
-const HIGHLIGHT_COLOR = "#39E508";
+const HIGHLIGHT_COLOR = "#8a2be2";
 
 export const Page: React.FC<{
   readonly enterProgress: number;
@@ -79,6 +79,7 @@ export const Page: React.FC<{
                   display: "inline",
                   whiteSpace: "pre",
                   color: active ? HIGHLIGHT_COLOR : "white",
+                  fontWeight: "bolder",
                 }}
               >
                 {t.text}

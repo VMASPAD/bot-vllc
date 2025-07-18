@@ -8,6 +8,7 @@ import {
   getStaticFiles,
   OffthreadVideo,
   Sequence,
+  staticFile,
   useVideoConfig,
   watchStaticFile,
 } from "remotion";
@@ -96,14 +97,39 @@ export const CaptionedVideo: React.FC<{
       captions: subtitles ?? [],
     });
   }, [subtitles]);
-
+  const getLogo = useCallback(() => {
+    return staticFile("img/logo.jpg");
+  }, []);
+  const getLeonLogo = useCallback(() => {
+    return staticFile("img/leon.png");
+  }, []);
+  const getMileiLogo = useCallback(() => {
+    return staticFile("img/mileimotosierra.png");
+  }, []);
   return (
-    <AbsoluteFill style={{ backgroundColor: "white" }}>
-      <AbsoluteFill>
+    <AbsoluteFill className="bg-amber-400">
+      <AbsoluteFill className="flex flex-col items-center justify-center">
+        <img 
+          src={getLogo()} 
+          alt="logo" 
+          className="z-50 absolute w-64 left-[50rem] bottom-[103rem] rounded-2xl"
+        />
+        <img 
+          src={getLeonLogo()} 
+          alt="logo" 
+          className="z-10 absolute w-full h-full"
+          style={{ objectFit: 'cover' }}
+        />
+        <img 
+          src={getMileiLogo()} 
+          alt="logo" 
+          className="z-50 absolute w-2xl right-[35rem] top-[80rem]"
+        />
         <OffthreadVideo
           style={{
             objectFit: "cover",
           }}
+          className="z-40 w-4xl rounded-3xl"
           src={src}
         />
       </AbsoluteFill>
@@ -124,8 +150,9 @@ export const CaptionedVideo: React.FC<{
             key={index}
             from={subtitleStartFrame}
             durationInFrames={durationInFrames}
+            className="z-50"
           >
-            <SubtitlePage key={index} page={page} />;
+            <SubtitlePage key={index} page={page} />
           </Sequence>
         );
       })}
