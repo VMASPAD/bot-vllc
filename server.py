@@ -250,6 +250,19 @@ def metadata():
         "name": "PETTOVELLO EXPLOTÓ CON FEINMANN QUE NO PARABA DE CUESTIONARLA"
     }
 
+@app.route('/eliminate')
+def eliminate():
+    out_dir = "./out/"
+    # Eliminar la carpeta ./out/ si existe
+    if os.path.exists(out_dir) and os.path.isdir(out_dir):
+        try:
+            shutil.rmtree(out_dir)  # Elimina la carpeta y su contenido directamente
+            print(f"Carpeta eliminada: {out_dir}")
+        except Exception as e:
+            print(f"Error eliminando carpeta {out_dir}: {e}")
+    return {
+        "eliminated": "true"
+    }
 
 @app.route('/')
 def home():
