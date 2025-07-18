@@ -244,7 +244,13 @@ def serve_captioned_video(filename):
         return send_from_directory(folder_path, filename)
     except Exception as e:
         return {"error": str(e)}, 500
-    
+@app.route('/metadata', methods=['GET'])
+def metadata():
+    return {
+        "name": "PETTOVELLO EXPLOTÓ CON FEINMANN QUE NO PARABA DE CUESTIONARLA"
+    }
+
+
 @app.route('/')
 def home():
     return {
